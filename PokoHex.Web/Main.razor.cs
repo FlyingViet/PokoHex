@@ -25,6 +25,7 @@ public partial class Main : IAsyncDisposable
     private ElementReference EditorWindow;
     private DotNetObjectReference<Main>? DropReference;
     private string PlayerName = string.Empty;
+    private long LifeCoins;
     private string SaveName = string.Empty;
     private string SelectedTab = "Player";
     private string PlayerSection = "Skills";
@@ -35,13 +36,14 @@ public partial class Main : IAsyncDisposable
     private bool MapOpened;
     private bool? BrowserDirty;
     private RenderState? LastRender;
-    private readonly record struct RenderState(SaveFolder? Save, string Name, string SaveName, string Tab, string PlayerSection,
+    private readonly record struct RenderState(SaveFolder? Save, string Name, long LifeCoins, string SaveName, string Tab, string PlayerSection,
         string Status, string Error, int Language, bool Busy, bool MapOpened, bool Dirty);
-    private bool HasChanges => SAV != null && (PlayerName != SAV.Common.PlayerName ||
+    private bool HasLifeCoinChanges => SAV?.Common.HasLifeCoins == true && LifeCoins != SAV.Common.LifeCoins;
+    private bool HasChanges => SAV != null && (PlayerName != SAV.Common.PlayerName || HasLifeCoinChanges ||
         Editor_Items?.HasChanges == true || Editor_Villagers?.HasChanges == true || Editor_Map?.HasChanges == true ||
         Editor_Skills?.HasChanges == true || Editor_Reactions?.HasChanges == true || Editor_Flags?.HasChanges == true || SAV.IsEdited);
 
-    private RenderState GetRenderState() => new(SAV, PlayerName, SaveName, SelectedTab, PlayerSection, Status, Error, Language, Busy, MapOpened, HasChanges);
+    private RenderState GetRenderState() => new(SAV, PlayerName, LifeCoins, SaveName, SelectedTab, PlayerSection, Status, Error, Language, Busy, MapOpened, HasChanges);
     protected override bool ShouldRender() => LastRender != GetRenderState();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -116,6 +118,7 @@ public partial class Main : IAsyncDisposable
         SAV = save;
         SaveName = name;
         PlayerName = save.Common.PlayerName;
+        LifeCoins = save.Common.HasLifeCoins ? save.Common.LifeCoins : 0;
         Editor_Items = null;
         Editor_Villagers = null;
         Editor_Map = null;
@@ -134,12 +137,14 @@ public partial class Main : IAsyncDisposable
             return;
         await RunBusy("Verifying and exporting save…", async () =>
         {
-            // Validate the name before applying any pending control values.
+            // Validate the name and Life Coins before applying any pending control values.
             if (PlayerName != SAV.Common.PlayerName)
             {
                 var check = SaveFile.Read(SAV.Common.Write());
                 check.PlayerName = PlayerName;
             }
+            if (HasLifeCoinChanges && LifeCoins is < 0 or > SaveFile.MaxLifeCoins)
+                throw new ArgumentException($"Life Coins must be between 0 and {SaveFile.MaxLifeCoins:N0}.");
             Editor_Map?.SaveChanges();
             Editor_Items?.SaveChanges();
             Editor_Villagers?.SaveChanges();
@@ -148,6 +153,8 @@ public partial class Main : IAsyncDisposable
             Editor_Flags?.SaveChanges();
             if (PlayerName != SAV.Common.PlayerName)
                 SAV.Common.PlayerName = PlayerName;
+            if (HasLifeCoinChanges)
+                SAV.Common.LifeCoins = (uint)LifeCoins;
             var files = SAV.ExportFiles();
             using var output = SaveArchive.WriteZip(files);
             using var reference = new DotNetStreamReference(output);

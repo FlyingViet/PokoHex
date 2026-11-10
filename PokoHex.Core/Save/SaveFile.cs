@@ -10,6 +10,7 @@ namespace PokoHex.Core;
 public sealed class SaveFile
 {
     private const uint Magic = 0x31227687;
+    public const uint MaxLifeCoins = 999_999;
     private static readonly UTF8Encoding Encoding = new(false, true);
     private readonly byte[] Original;
     private readonly byte[] OriginalData;
@@ -60,6 +61,27 @@ public sealed class SaveFile
                 dest.Clear();
                 bytes.CopyTo(dest);
             }
+        }
+    }
+
+    public bool HasLifeCoins => Layout.LifeCoinsOffset != 0;
+
+    public uint LifeCoins
+    {
+        get
+        {
+            if (!HasLifeCoins)
+                throw new InvalidOperationException("Life Coins are not supported for this save version.");
+            return ReadUInt32LittleEndian(Data.AsSpan(Layout.LifeCoinsOffset));
+        }
+        set
+        {
+            var current = LifeCoins;
+            if (value == current)
+                return;
+            if (value > MaxLifeCoins)
+                throw new ArgumentException($"Life Coins must be between 0 and {MaxLifeCoins:N0}.");
+            WriteUInt32LittleEndian(Data.AsSpan(Layout.LifeCoinsOffset), value);
         }
     }
 

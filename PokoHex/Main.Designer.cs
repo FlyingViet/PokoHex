@@ -44,6 +44,8 @@ partial class Main
         Editor_Reactions = new AbilityEditor { Reactions = true, Dock = DockStyle.Fill, Visible = false };
         var name = new Label();
         TB_Name = new TextBox();
+        var coins = new Label();
+        NUD_LifeCoins = new NumericUpDown();
         DGV_Items = new DataGridView();
         CB_Inventory = new ComboBox();
         var inventoryPanel = new Panel();
@@ -80,8 +82,8 @@ partial class Main
         map.Controls.Add(Editor_Map);
         player.Padding = new Padding(8);
         playerHeader.Dock = DockStyle.Top;
-        playerHeader.Height = 92;
-        playerSections.Location = new Point(114, 50);
+        playerHeader.Height = 126;
+        playerSections.Location = new Point(114, 84);
         playerSections.Size = new Size(240, 34);
         playerSections.WrapContents = false;
         RB_Skills.Name = "RB_Skills";
@@ -106,7 +108,14 @@ partial class Main
         TB_Name.Location = new Point(114, 16);
         TB_Name.Size = new Size(244, 23);
         TB_Name.MaxLength = 24;
-        playerHeader.Controls.AddRange([name, TB_Name, playerSections]);
+        coins.AutoSize = true;
+        coins.Location = new Point(10, 54);
+        coins.Text = "Life Coins:";
+        NUD_LifeCoins.Name = "NUD_LifeCoins";
+        NUD_LifeCoins.Location = new Point(114, 50);
+        NUD_LifeCoins.Size = new Size(120, 23);
+        NUD_LifeCoins.ThousandsSeparator = true;
+        playerHeader.Controls.AddRange([name, TB_Name, coins, NUD_LifeCoins, playerSections]);
         player.Controls.AddRange([Editor_Reactions, Editor_Skills, playerHeader]);
         items.Padding = new Padding(8);
         split.Dock = DockStyle.Fill;
@@ -211,6 +220,7 @@ partial class Main
     private ToolStripStatusLabel L_Status = null!;
     private TabControl TC_Editor = null!;
     private TextBox TB_Name = null!;
+    private NumericUpDown NUD_LifeCoins = null!;
     private DataGridView DGV_Items = null!;
     private ComboBox CB_Inventory = null!;
     private ComboBox CB_Item = null!;

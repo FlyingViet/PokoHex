@@ -27,7 +27,18 @@ public partial class Main : Form
         }
     }
 
-    private bool HasChanges => SAV != null && (SAV.IsEdited || TB_Name.Text != SAV.Common.PlayerName || HasSlotChanges || Editor_Villagers.HasChanges || Editor_Map.HasChanges || Editor_Skills.HasChanges || Editor_Reactions.HasChanges || Editor_Flags.HasChanges);
+    private bool HasChanges => SAV != null && (SAV.IsEdited || TB_Name.Text != SAV.Common.PlayerName || HasLifeCoinChanges || HasSlotChanges || Editor_Villagers.HasChanges || Editor_Map.HasChanges || Editor_Skills.HasChanges || Editor_Reactions.HasChanges || Editor_Flags.HasChanges);
+
+    private bool HasLifeCoinChanges => SAV?.Common.HasLifeCoins == true && NUD_LifeCoins.Value != SAV.Common.LifeCoins;
+
+    private void LoadLifeCoins(SaveFile save)
+    {
+        var supported = save.HasLifeCoins;
+        var coins = supported ? save.LifeCoins : 0;
+        NUD_LifeCoins.Maximum = Math.Max(SaveFile.MaxLifeCoins, coins);
+        NUD_LifeCoins.Value = coins;
+        NUD_LifeCoins.Enabled = supported;
+    }
 
     private bool HasSlotChanges
     {
@@ -57,6 +68,7 @@ public partial class Main : Form
             SAV = save;
             Loading = true;
             TB_Name.Text = save.Common.PlayerName;
+            LoadLifeCoins(save.Common);
             CB_Inventory.SelectedIndex = 0;
             InventoryStart = 0;
             TC_Editor.Enabled = true;
@@ -289,11 +301,14 @@ public partial class Main : Form
             Editor_Flags.SaveChanges();
             if (TB_Name.Text != SAV.Common.PlayerName)
                 SAV.Common.PlayerName = TB_Name.Text;
+            if (HasLifeCoinChanges)
+                SAV.Common.LifeCoins = (uint)NUD_LifeCoins.Value;
             using var dialog = new FolderBrowserDialog { Description = "Select a new, empty folder for the edited save", UseDescriptionForTitle = true };
             if (dialog.ShowDialog() != DialogResult.OK)
                 return;
             SAV.Export(dialog.SelectedPath);
             SAV = SaveFolder.Read(dialog.SelectedPath);
+            LoadLifeCoins(SAV.Common);
             Editor_Villagers.LoadSave(SAV.Common);
             Editor_Map.LoadSave(SAV);
             Editor_Skills.LoadSave(SAV.Common);

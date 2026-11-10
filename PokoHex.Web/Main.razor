@@ -46,6 +46,9 @@
                     <div class="player-header">
                         <label for="player-name">Player name:</label>
                         <input id="player-name" @bind="PlayerName" @bind:event="oninput" />
+                        <label for="life-coins">Life Coins:</label>
+                        <input id="life-coins" type="number" min="0" max="@SaveFile.MaxLifeCoins" step="1" @bind="LifeCoins" @bind:event="oninput"
+                               disabled="@(!SAV.Common.HasLifeCoins)" title="@(SAV.Common.HasLifeCoins ? $"0 to {SaveFile.MaxLifeCoins:N0}" : "Not available for this save version")" />
                         <div class="player-sections" role="group" aria-label="Player editor">
                             <button aria-pressed="@(PlayerSection == "Skills")" @onclick='() => PlayerSection = "Skills"'>Skills</button>
                             <button aria-pressed="@(PlayerSection == "Reactions")" @onclick='() => PlayerSection = "Reactions"'>Reactions</button>

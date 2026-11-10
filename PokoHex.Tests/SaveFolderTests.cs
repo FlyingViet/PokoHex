@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using PokoHex.Core;
 using Xunit;
 using static System.Buffers.Binary.BinaryPrimitives;
@@ -44,9 +45,33 @@ public static class SaveFolderTests
         Assert.Throws<InvalidDataException>(() => SaveFolder.ReadFiles(missing));
     }
 
-    private static Dictionary<string, byte[]> GetFiles()
+    [Fact]
+    public static void EditLifeCoins()
     {
-        var layout = SaveLayout.Version70;
+        var files = GetFiles(SaveLayout.Version381);
+        var save = SaveFolder.ReadFiles(files);
+        Assert.True(save.Common.HasLifeCoins);
+        Assert.Equal(0u, save.Common.LifeCoins);
+        save.Common.LifeCoins = 0;
+        Assert.False(save.IsEdited);
+        Assert.Throws<ArgumentException>(() => save.Common.LifeCoins = SaveFile.MaxLifeCoins + 1);
+        save.Common.LifeCoins = 710;
+        Assert.Equal(710u, ReadUInt32LittleEndian(save.Common.Data.AsSpan(SaveLayout.Version381.LifeCoinsOffset)));
+        save.Common.LifeCoins = SaveFile.MaxLifeCoins;
+        var reopened = SaveFolder.ReadFiles(save.ExportFiles());
+        Assert.Equal(SaveFile.MaxLifeCoins, reopened.Common.LifeCoins);
+        var offset = SaveLayout.Version381.LifeCoinsOffset;
+        Assert.All(Enumerable.Range(0, save.Common.Data.Length).Where(i => save.Common.Data[i] != 0),
+            i => Assert.InRange(i, offset, offset + 3));
+
+        var old = SaveFolder.ReadFiles(GetFiles());
+        Assert.False(old.Common.HasLifeCoins);
+        Assert.Throws<InvalidOperationException>(() => old.Common.LifeCoins);
+    }
+
+    private static Dictionary<string, byte[]> GetFiles(SaveLayout? layout = null)
+    {
+        layout ??= SaveLayout.Version70;
         using var output = new MemoryStream();
         output.Write(new byte[layout.HeaderSize]);
         using (var zlib = new ZLibStream(output, CompressionLevel.Fastest, true))
